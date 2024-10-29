@@ -58,10 +58,16 @@ unique_list <- lapply( apply(raw, c(2), unique),
 
 # Read file containing groupings of entries
 FileName_NewGroups <- "./unique_list_Adapted.xlsx"
+FileName_SectorOrder <- "./sector_order.xlsx"
 
 group <- list( "sec" = read.xlsx(FileName_NewGroups, sheet = "Sector"),
                "measure" = read.xlsx(FileName_NewGroups, sheet = "Measure_Group"),
                "time" = read.xlsx(FileName_NewGroups, sheet = "Time_Frame"))
+
+order <- list("sec" = list("Group_1" = read.xlsx(FileName_SectorOrder, sheet = "new_grouping"),
+                           "Group_2" = read.xlsx(FileName_SectorOrder, sheet = "new_grouping_aggregate")
+                           )
+              )
 
 # Make clean data set with new labels referring to adapted groupings
 clean <- raw %>% 
@@ -80,24 +86,126 @@ clean <- raw %>%
                               stressor == "Material_pot" ~ "Materials",
                               stressor == "Energy_pot" ~ "Energy")
          ) %>% 
+  filter(complete.cases(.)) %>% 
   mutate(value = as.numeric(value),
          Measure_Group_Category = factor(Measure_Group_Category, levels = c("Narrow", "Slow", "Close", "Auxiliary", "Combined")),
-         stressor = factor(stressor, levels = c("Materials", "Energy", "GHGs"))) %>% 
-  filter(complete.cases(.))
+         stressor = factor(stressor, levels = c("Materials", "Energy", "GHGs")),
+         Time_Frame_Group = factor(Time_Frame_Group, levels = c("vs base year", "vs BAU", "vs cumulative")),
+         Sector_Group_1 = factor(Sector_Group_1, levels = order$sec$Group_1$order),
+         Sector_Group_2 = factor(Sector_Group_2, levels = order$sec$Group_2$order))
+  
 
 colors <- pal_viridis()(3)
 
-unique(clean$Sector_Group_1)
+
 
 ggplot(clean, aes(y = value, x = Sector_Group_1, fill = Time_Frame_Group)) +
   geom_boxplot(position = "dodge") +
   facet_grid(Measure_Group_Category ~ stressor) +
   theme(axis.text = element_text(colour = "black"),
         axis.text.x = element_text(angle = 90),
-        legend.position = "none",
+        legend.position = "top",
         axis.title = element_blank(),
-        strip.text = element_text(size = 14, face = "bold")) +
+        strip.text = element_text(size = 14, face = "bold"),
+        panel.grid.major.x = element_blank()) +
   scale_fill_manual(values = colors) +
-  scale_y_continuous(labels = percent)
+  scale_y_continuous(labels = percent) +
+  geom_vline(xintercept = seq(0.5, 15, by = 1), color="gray", size=.5, alpha=.5) +
+  geom_text(data = clean %>% count(Measure_Group_Category, stressor),
+            aes(label = paste("Count:",n), y = Inf, x  = -Inf))
 
+
+
+
+
+# Create the plot 1
+ggplot(clean, aes(y = value, x = Sector_Group_1, fill = Time_Frame_Group)) +
+  geom_boxplot(position = "dodge") +
+  facet_grid(Measure_Group_Category ~ stressor) +
+  theme(axis.text = element_text(colour = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.2),
+        legend.position = "top",
+        axis.title = element_blank(),
+        strip.text = element_text(size = 14, face = "bold"),
+        panel.grid.major.x = element_blank()) +
+  scale_fill_manual(values = colors) +
+  scale_y_continuous(labels = percent) +
+  geom_vline(xintercept = seq(0.5, 15, by = 1), color="gray", size=.5, alpha=.5)
+
+ggsave("./overiew_1.png",
+       plot = last_plot(),  
+       width = 8,  
+       height = 11,  
+       dpi = 1850,
+       bg = "white") 
+
+# Create the plot 2
+ggplot(clean, aes(y = value, x = Sector_Group_1, color = Time_Frame_Group)) +
+  geom_point(size = 3) +
+  facet_grid(Measure_Group_Category ~ stressor) +
+  theme(axis.text = element_text(colour = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.2),
+        legend.position = "top",
+        axis.title = element_blank(),
+        strip.text = element_text(size = 14, face = "bold"),
+        panel.grid.major.x = element_blank()) +
+  scale_color_manual(values = colors) +
+  scale_y_continuous(labels = percent) +
+  geom_vline(xintercept = seq(0.5, 15, by = 1), color="gray", size=.5, alpha=.5)
+
+ggsave("./overiew_2.png",
+       plot = last_plot(),  
+       width = 8,  
+       height = 11,  
+       dpi = 1850,
+       bg = "white") 
+
+
+# Create the plot 3
+ggplot(clean, aes(y = value, x = Sector_Group_2, fill = Time_Frame_Group)) +
+  geom_boxplot(position = "dodge") +
+  facet_grid(Measure_Group_Category ~ stressor) +
+  theme(axis.text = element_text(colour = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.2),
+        legend.position = "top",
+        axis.title = element_blank(),
+        strip.text = element_text(size = 14, face = "bold"),
+        panel.grid.major.x = element_blank()) +
+  scale_fill_manual(values = colors) +
+  scale_y_continuous(labels = percent) +
+  geom_vline(xintercept = seq(0.5, 15, by = 1), color="gray", size=.5, alpha=.5)
+
+ggsave("./overiew_3.png",
+       plot = last_plot(),  
+       width = 8,  
+       height = 11,  
+       dpi = 1850,
+       bg = "white") 
+
+# Create the plot 4
+ggplot(clean, aes(y = value, x = Sector_Group_2, color = Time_Frame_Group)) +
+  geom_point(size = 3) +
+  facet_grid(Measure_Group_Category ~ stressor) +
+  theme(axis.text = element_text(colour = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 0.2),
+        legend.position = "top",
+        axis.title = element_blank(),
+        strip.text = element_text(size = 14, face = "bold"),
+        panel.grid.major.x = element_blank()) +
+  scale_color_manual(values = colors) +
+  scale_y_continuous(labels = percent) +
+  geom_vline(xintercept = seq(0.5, 15, by = 1), color="gray", size=.5, alpha=.5)
+
+ggsave("./overiew_4.png",
+       plot = last_plot(),  
+       width = 8,  
+       height = 11,  
+       dpi = 1850,
+       bg = "white")
+
+df_counts <- clean %>%
+  group_by(Measure_Group_Category, stressor, Time_Frame_Group, Sector_Group_2) %>%
+  summarise(count = n())
+
+ggplot(df_counts, aes(y = count, x = ))
 
